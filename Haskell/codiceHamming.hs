@@ -12,259 +12,271 @@ alla scelta dell'utente. I parametri (n,k) saranno derivati da un valore m, forn
 che rappresenta il numero di bit di parità. Il programma sarà inoltre in grado di calcolare la 
 distanza di Hamming tra due stringhe binarie, fornite dall'utente, di lunghezza uguale ma arbitraria.-}
 
-import Data.Bits (testBit, xor, (.&.), shiftL)
+import Data.Bits (testBit, xor, (.&.), shiftL, finiteBitSize)
 import Text.Read (readMaybe)
-import Control.Monad (unless, when)
+import Data.Char (digitToInt)
 import Data.List (foldl')
-import System.Exit (exitSuccess)
 
--- Tipi di dati per migliorare la leggibilità del codice 
+-- Tipi di dati
 type Bit = Int
 type ParolaBinaria = [Bit]
 
-{- main: Funzione principale del programma -}
-main :: IO ()
-main = do 
-    print "------------------------------------Benvenuto------------------------------------"
-    print "Il seguente programma permette di utilizzare i codici di Hamming generici (n,k)"
-    print "per la codifica, decodifica e calcolo della distanza di Hamming tra due parole"
-    print "binarie."
-    print "Come funziona il programma:"
-    print "Potrai scegliere dal menu una delle tre operazioni da eseguire, per la codifica"
-    print "e decodifica di Hamming, verra\' chiesto di inserire m, ovvero il numero di bit "
-    print "di parita\', grazie ad m verranno calcolati n e k, e si potra\' inserire la"
-    print "parola binaria. Esempio di parola accetta '1011'"
-    print "Notare che per la decodifica questo algoritmo corregge solo errori singoli."
-    print "Con errori multipli il risultato potrebbe essere errato."
-    print "Il programma finisce solo nel momento in cui si sceglie l'opzione esci dal menu"
-    print "---------------------------------------------------------------------------------"
-    cicloPrincipale
+{- Funzione limiteM costante
+   Descrizione: definisce il limite massimo per m basandosi sulla dimensione dei bit del sistema. -}
+limiteM :: Int
+limiteM = finiteBitSize (0 :: Int) - 2
 
-{- cicloPrincipale: Gestisce il menu principale e le scelte dell'utente -}
-cicloPrincipale :: IO ()
-cicloPrincipale = do
-    -- Lista delle operazioni disponibili nel programma 
-    let vociMenu = [ "Codifica di Hamming"
-                   , "Decodifica di Hamming"
-                   , "Distanza di Hamming"
-                   , "Esci"
-                   ]
-    
-    -- Stampa il menu usando mapM_ per eseguire l'azione su ogni elemento 
-    putStrLn "\nScegli operazione:"
-    mapM_ (\(indice, voce) -> putStrLn $ show indice ++ " - " ++ voce) 
-          (zip [1..] vociMenu)
-    
-    -- Pattern matching sull'input dell'utente per determinare l'azione 
-    scelta <- getLine
-    case scelta of
-        "1" -> gestioneCodificaHamming >> cicloPrincipale
-        "2" -> gestioneDecodificaHamming >> cicloPrincipale
-        "3" -> gestioneDistanzaHamming >> cicloPrincipale
-        "4" -> exitSuccess
-        _   -> do
-            putStrLn "Scelta non valida. Riprova."
-            cicloPrincipale 
+{- Funzione potenzaDiDue
+   Descrizione: determina se un numero intero è una potenza di due.
+   Argomenti: n (numero intero da verificare). -}
+potenzaDiDue :: Int -> Bool
+potenzaDiDue n = n > 0 && (n .&. (n - 1)) == 0
 
-{- gestioneCodificaHamming: Gestisce il processo di codifica di Hamming
-   coordina input utente, calcoli e output per la codifica -}
-gestioneCodificaHamming :: IO()
-gestioneCodificaHamming = do
-    putStrLn "\nCodifica di Hamming"
-    parametroM <- controlloParametroM 
-    -- Calcola automaticamente n e k basandosi su m 
-    let (parametroN, parametroK) = calcolaParametriHamming parametroM
-    putStrLn $ "Parametri calcolati: n = " ++ show parametroN ++ ", k = " ++ show parametroK
-    parola <- controlloParolaBinaria parametroK
-    {- Converte la stringa in lista di bit usando map e read -}
-    let parolaDati = map (read . (:[])) parola :: ParolaBinaria
-    let parolaCodificata = codificaHamming parametroM parolaDati
-    putStrLn $ "La parola codificata è: " ++ concatMap show parolaCodificata
-
-{- gestioneDecodificaHamming: Gestisce il processo di decodifica di Hamming
-   coordina input utente, calcoli e output per la decodifica -}
-gestioneDecodificaHamming :: IO()
-gestioneDecodificaHamming = do 
-    putStrLn "\nDecodifica di Hamming"
-    parametroM <- controlloParametroM 
-    let (parametroN, parametroK) = calcolaParametriHamming parametroM
-    putStrLn $ "Parametri calcolati: n = " ++ show parametroN ++ ", k = " ++ show parametroK
-    parola <- controlloParolaBinaria parametroN
-    let parolaRicevuta = map (read . (:[])) parola :: ParolaBinaria
-    let (parolaDecodificata, errore) = decodificaHamming parametroM parolaRicevuta
-    -- Pattern matching su Maybe per gestire presenza o assenza di errore 
-    case errore of
-        Nothing -> 
-            putStrLn $ "Nessun errore rilevato. La parola decodificata è: " ++ concatMap show parolaDecodificata
-        Just posizione -> 
-            putStrLn $ "Corretto un errore nella posizione " ++ show posizione ++ 
-                      ". La parola decodificata è: " ++ concatMap show parolaDecodificata
-
-{- gestioneDistanzaHamming: Gestisce il calcolo della distanza di Hamming
-   coordina input di due parole e calcolo della distanza -}
-gestioneDistanzaHamming :: IO()
-gestioneDistanzaHamming = do 
-    putStrLn "\nDistanza di Hamming"
-    (s1, s2) <- controlloDueParole
-    let p1 = map (read . (:[])) s1 :: ParolaBinaria
-    let p2 = map (read . (:[])) s2 :: ParolaBinaria
-    putStrLn $ "La distanza di Hamming tra le due parole è: " ++ show (calcolaDistanzaHamming p1 p2)
-
-{- controlloParametroM: Valida l'input del parametro m
-   continua a chiedere input fino a ottenere un valore valido -}
-controlloParametroM :: IO Int 
-controlloParametroM = do 
-    putStrLn "Inserisci m (m >= 2):"
-    input <- getLine
-    -- Usa readMaybe per parsing sicuro che ritorna Maybe Int 
-    case readMaybe input of
-        Just m | m >= 2 -> return m
-        _ -> do
-            putStrLn "Errore: m deve essere un intero maggiore uguale a 2"
-            controlloParametroM
-
-{- controlloParolaBinaria: Valida l'input di una parola binaria di lunghezza specifica
-   Argomenti: lunghezza richiesta della parola
-   continua a chiedere input fino a ottenere una parola valida -}
-controlloParolaBinaria :: Int -> IO String
-controlloParolaBinaria lunghezza = do
-    putStrLn $ "Inserisci parola binaria di lunghezza " ++ show lunghezza ++ ":"
-    parola <- getLine
-    -- all verifica che tutti i caratteri siano in "01" 
-    if all (`elem` "01") parola && length parola == lunghezza
-        then return parola
-        else do
-            putStrLn "Errore: lunghezza non valida o caratteri non binari"
-            controlloParolaBinaria lunghezza
-
-{- controlloDueParole: Valida l'input di due parole binarie di uguale lunghezza
-   continua a chiedere input fino a ottenere due parole valide -}
-controlloDueParole :: IO (String, String)
-controlloDueParole = do
-    putStrLn "Inserisci prima parola binaria:"
-    p1 <- getLine
-    putStrLn "Inserisci seconda parola binaria (stessa lunghezza):"
-    p2 <- getLine
-    if length p1 == length p2 && all (`elem` "01") p1 && all (`elem` "01") p2
-        then return (p1, p2)
-        else do
-            putStrLn "Errore: le parole devono essere binarie e di uguale lunghezza"
-            controlloDueParole
-
-{- calcolaParametriHamming: Calcola i parametri n e k del codice di Hamming
-   Argomenti: m (numero di bit di parità)
-   calcola n = 2^m - 1 e k = n - m -}
+{- Funzione calcolaParametriHamming 
+   Descrizione: calcola la lunghezza totale del codice (n) e la lunghezza dei dati (k) dato il numero di bit di parità (m).
+   Argomenti: m (numero di bit di parità). -}
 calcolaParametriHamming :: Int -> (Int, Int)
 calcolaParametriHamming m = (n, n - m)
-    -- where permette di definire n localmente per riutilizzarlo 
-    where n = 2 ^ m - 1
+    where n = (1 `shiftL` m) - 1
 
-{- potenzaDiDue: Verifica se un numero è una potenza di 2
-   Argomenti: n (numero da verificare) -}
-potenzaDiDue :: Int -> Bool
-potenzaDiDue n = n /= 0 && (n .&. (n-1)) == 0
+{- Funzione costruisciStruttura 
+   Descrizione: inserisce placeholder (zeri) nelle posizioni che sono potenze di due, preparando la struttura per i bit di parità.
+   Argomenti: n (lunghezza totale), dati (lista di bit di dati).
+   Casi (nella helper 'go'):
+     - Base: pos > n, restituisce lista vuota.
+     - Generale 1: pos è potenza di due, inserisce 0 e ricorre.
+     - Generale 2: altrimenti, inserisce il prossimo bit dati e ricorre. -}
+costruisciStruttura :: Int -> ParolaBinaria -> ParolaBinaria
+costruisciStruttura n dati = go 1 dati
+  where
+    go pos xs
+        | pos > n = []
+        | potenzaDiDue pos = 0 : go (pos + 1) xs
+        | otherwise = case xs of
+            (d:ds) -> d : go (pos + 1) ds
+            []     -> []
 
-{- aggiornaElemento: Aggiorna un elemento in una lista a un indice specifico
-   Argomenti: lista, indice, nuovo valore
-   divide la lista e ricostruisce con nuovo valore -}
-aggiornaElemento :: [a] -> Int -> a -> [a]
-aggiornaElemento lista indice nuovo = 
-    -- splitAt divide la lista in due parti all'indice specificato 
-    let (prima, _:dopo) = splitAt indice lista
-    in prima ++ [nuovo] ++ dopo
+{- Funzione calcolaBitParita
+   Descrizione: calcola il valore di un singolo bit di parità per una specifica posizione di controllo.
+   Argomenti: i (indice dell'esponente 2^i), parola (la sequenza binaria). -}
+calcolaBitParita :: Int -> ParolaBinaria -> Bit
+calcolaBitParita i parola =
+    foldl' xor 0 [b | (pos, b) <- zip [(1::Int)..] parola, testBit pos i]
 
-{- codificaHamming: Codifica una parola usando il codice di Hamming
-   Argomenti: m (bit di parità), parolaDati (dati da codificare)
-   crea parola iniziale e inserisce dati nelle posizioni corrette
-   coordina inserimento dati e calcolo bit di parità -}
+{- Funzione inserisciParita
+   Descrizione: sostituisce i placeholder (zeri) nelle posizioni di parità con i bit di parità calcolati.
+   Argomenti: m (numero bit parità), struttura (parola con placeholder). -}
+inserisciParita :: Int -> ParolaBinaria -> ParolaBinaria
+inserisciParita m struttura = foldl' inserisci struttura [0..m-1]
+  where
+    inserisci parolaTemp i =
+        let posPar = (1 `shiftL` i) - 1
+            bitPar = calcolaBitParita i parolaTemp
+        in aggiornaPos parolaTemp posPar bitPar
+    
+    aggiornaPos xs idx val =
+        let (before, _:after) = splitAt idx xs
+        in before ++ val : after
+
+{- Funzione codificaHamming
+   Descrizione: esegue l'intero processo di codifica Hamming (calcolo parametri, struttura, inserimento parità).
+   Argomenti: m (numero bit parità), dati (lista bit input). -}
 codificaHamming :: Int -> ParolaBinaria -> ParolaBinaria
-codificaHamming m parolaDati =
+codificaHamming m dati =
     let (n, _) = calcolaParametriHamming m
-        -- Inizializza una parola di tutti zeri 
-        parolaIniziale = replicate n 0
-        indiciNonParita = filter (\j -> not (potenzaDiDue (j+1))) [0..n-1]
-        parolaConDati = inserisciDati parolaIniziale indiciNonParita parolaDati
-    in calcolaParita parolaConDati n m
+        struttura = costruisciStruttura n dati
+    in inserisciParita m struttura
 
-{- calcolaParita: Calcola tutti i bit di parità per una parola
-   Argomenti: parola, n (lunghezza), m (numero bit parità)
-   Casi base: quando lista [0..m-1] è vuota ritorna parola invariata
-   Casi generali: per ogni i in [0..m-1] calcola il bit di parità i-esimo
-   usa foldl' per applicare calcolaEAggiornaParita a ogni posizione di parità -}
-calcolaParita :: ParolaBinaria -> Int -> Int -> ParolaBinaria
-calcolaParita parola n m = foldl' (calcolaEAggiornaParita n) parola [0..m-1]
-
-
-{- calcolaEAggiornaParita: Calcola e aggiorna un singolo bit di parità
-   Argomenti: n (lunghezza parola), parola, i (indice bit parità)
-   identifica bit controllati, calcola XOR e aggiorna posizione -}
-calcolaEAggiornaParita :: Int -> ParolaBinaria -> Int -> ParolaBinaria
-calcolaEAggiornaParita n parola i =
-    let posizioneParita = 2^i
-        indiceParita = posizioneParita - 1
-        -- testBit j i verifica se il bit i-esimo di j è settato 
-        indiciControllati = [ j-1 | j <- [1..n], testBit j i ]
-        -- Esclude il bit de parità stesso dal calcolo -}
-        bitDati = map (parola !!) (filter (/= indiceParita) indiciControllati)
-        -- XOR di tutti i bit controllati 
-        valoreXOR = foldl' xor 0 bitDati
-    in aggiornaElemento parola indiceParita valoreXOR
-
-{- inserisciDati: Inserisce i dati nelle posizioni specificate
-   Argomenti: parola iniziale, lista indici, lista dati
-   Casi base: quando liste indici e dati sono vuote ritorna parola invariata
-   Casi generali: per ogni coppia (indice, dato) aggiorna la parola
-   usa foldl' per applicare aggiornaElemento a ogni coppia -}
-inserisciDati :: [a] -> [Int] -> [a] -> [a]
-inserisciDati parola indici dati = 
-    -- zip associa ogni indice al dato corrispondente
-    foldl' (\acc (indice, dato) -> aggiornaElemento acc indice dato) parola (zip indici dati)
-
-{- calcolaSindrome: Calcola la sindrome per rilevare errori
-   Argomenti: m (bit parità), parola ricevuta
-   Casi base: quando lista [0..m-1] è vuota sindrome = 0
-   Casi generali: per ogni bit di parità verifica correttezza e accumula errori
-   usa foldl' per verificare ogni bit di parità e costruire sindrome -}
+{- Funzione calcolaSindrome
+   Descrizione: calcola la sindrome sommando le posizioni dove la parità non corrisponde.
+   Argomenti: m (numero bit parità), parola (parola ricevuta). -}
 calcolaSindrome :: Int -> ParolaBinaria -> Int
 calcolaSindrome m parola =
-    let n = length parola
-    in foldl' (\sindrome i -> 
-            let posizioneParita = 2^i
-                indiceParita = posizioneParita - 1
-                indiciControllati = [ j-1 | j <- [1..n], testBit j i ]
-                bitDati = map (parola !!) (filter (/= indiceParita) indiciControllati)
-                valoreAtteso = foldl' xor 0 bitDati
-                valoreParita = parola !! indiceParita
-                {- Se la parità non corrisponde, aggiungi la posizione alla sindrome -}
-            in if valoreParita /= valoreAtteso 
-                then sindrome + posizioneParita 
-                else sindrome
-        ) 0 [0..m-1]
+    sum [valXor * (1 `shiftL` i) | i <- [0..m-1], let valXor = calcolaBitParita i parola, valXor /= 0]
 
-{- estraiDati: Estrae i bit di dati da una parola codificata
-   Argomenti: m (bit parità), parola codificata
-   filtra posizioni non-parità e mappa gli elementi -}
-estraiDati :: Int -> ParolaBinaria -> ParolaBinaria
-estraiDati m parola =
-    let n = length parola
-        indiciDati = filter (\i -> not (potenzaDiDue (i+1))) [0..n-1]
-    in map (parola !!) indiciDati
+{- Funzione correggiBit
+   Descrizione: inverte il bit alla posizione specificata per correggere l'errore.
+   Argomenti: parola (lista bit), idx (indice 0-based del bit da invertire). -}
+correggiBit :: ParolaBinaria -> Int -> ParolaBinaria
+correggiBit parola idx
+    | idx < 0 || idx >= length parola = parola
+    | otherwise =
+        let (before, b:after) = splitAt idx parola
+        in before ++ (1 - b) : after
 
-{- decodificaHamming: Decodifica una parola e corregge un eventuale errore
-   Argomenti: m (bit parità), parola ricevuta
-   calcola sindrome e decide se correggere o meno -}
+{- Funzione estraiDati
+   Descrizione: rimuove i bit di parità (posizioni potenza di due) restituendo solo i dati originali.
+   Argomenti: parola (lista bit completa). -}
+estraiDati :: ParolaBinaria -> ParolaBinaria
+estraiDati parola = [b | (pos, b) <- zip [1..] parola, not (potenzaDiDue pos)]
+
+{- Funzione decodificaHamming
+   Descrizione: gestisce la decodifica, rileva errori tramite sindrome, corregge se necessario ed estrae i dati.
+   Argomenti: m (numero bit parità), ricevuta (parola ricevuta). -}
 decodificaHamming :: Int -> ParolaBinaria -> (ParolaBinaria, Maybe Int)
-decodificaHamming m parola =
-    let sindrome = calcolaSindrome m parola
-    in if sindrome == 0
-        then (estraiDati m parola, Nothing)
-        else
-            let posizioneErrore = sindrome - 1
-                parolaCorretta = aggiornaElemento parola posizioneErrore (1 - parola !! posizioneErrore)
-            in (estraiDati m parolaCorretta, Just (posizioneErrore + 1))
+decodificaHamming m ricevuta =
+    case calcolaSindrome m ricevuta of
+        0 -> (estraiDati ricevuta, Nothing)
+        s -> let corretta = correggiBit ricevuta (s - 1)
+             in (estraiDati corretta, Just s)
 
-{- calcolaDistanzaHamming: Calcola la distanza di Hamming tra due parole
-   Argomenti: parola1, parola2 -}
+{- Funzione calcolaDistanzaHamming
+   Descrizione: calcola la distanza di Hamming (numero di bit diversi) tra due parole.
+   Argomenti: p1, p2 (due liste di bit da confrontare). -}
 calcolaDistanzaHamming :: ParolaBinaria -> ParolaBinaria -> Int
-calcolaDistanzaHamming parola1 parola2 = 
-    sum (zipWith (\a b -> if a == b then 0 else 1) parola1 parola2)
+calcolaDistanzaHamming p1 p2 = sum [1 | (a, b) <- zip p1 p2, a /= b]
+
+{- Funzione validaM
+   Descrizione: valida se l'input stringa per 'm' è un intero valido entro i limiti.
+   Argomenti: s (stringa input). -}
+validaM :: String -> Maybe Int
+validaM s = do
+    m <- readMaybe s
+    if m >= 2 && m <= limiteM then Just m else Nothing
+
+{- Funzione validaParolaBinaria
+   Descrizione: Converte una stringa di '0' e '1' in una lista di Bit, verificando la lunghezza.
+   Argomenti: len (lunghezza attesa), s (stringa input). -}
+validaParolaBinaria :: Int -> String -> Maybe ParolaBinaria
+validaParolaBinaria len s
+    | length s /= len = Nothing
+    | otherwise = traverse charToBit s
+  where
+    charToBit '0' = Just 0
+    charToBit '1' = Just 1
+    charToBit _   = Nothing
+
+{- Funzione (Dato Costante)
+   Descrizione: Lista di stringhe contenente il testo di benvenuto.
+   Argomenti: Nessuno. -}
+messaggioBenvenuto :: [String]
+messaggioBenvenuto =
+    [ "\n------------------------------------Benvenuto------------------------------------"
+    , "Il seguente programma permette di utilizzare i codici di Hamming generici (n,k)"
+    , "per la codifica, decodifica e calcolo della distanza di Hamming tra due parole"
+    , "binarie."
+    , "Si ricorda che la decodifica di Hamming implementata permette solo di individuare"
+    , "e correggere un singolo errore."
+    , "Come funziona il programma:"
+    , "Potrai scegliere dal menu una delle tre operazioni da eseguire."
+    , "Per la codifica e decodifica di Hamming: "
+    , "1. Ti verrà richiesto di inserire l'indice di parità (numero intero <= 2)"
+    , "2. n e k verranno calcolati automaticamente"
+    , "3. Ti verrà chiesto di inserire una parola binaria con una determinata lunghezza"
+    , "Per la distanza di Hamming, ti verrà richiesto di inserire due parole di esatta"
+    , "lunghezza."
+    , "Esempio di parola accettata '1011'."
+    , "Il programma finisce solo nel momento in cui si sceglie l'opzione esci dal menu"
+    , "---------------------------------------------------------------------------------"
+    ]
+
+{- Tipo: Funzione (Dato Costante)
+   Descrizione: Lista delle opzioni del menu.
+   Argomenti: Nessuno. -}
+vociMenu :: [String]
+vociMenu =
+    [ "1. Codifica di Hamming"
+    , "2. Decodifica di Hamming"
+    , "3. Distanza di Hamming"
+    , "4. Esci"
+    ]
+
+{- Azione elaboraInput
+   Descrizione: gestisce l'input utente generico con validazione e messaggi di errore (ricorsiva in caso di errore).
+   Argomenti: validatore (funzione di check), prompt (messaggio richiesta), msgErrore (messaggio fallimento). -}
+elaboraInput :: (String -> Maybe a) -> String -> String -> IO a
+elaboraInput validatore prompt msgErrore = do
+    putStrLn prompt
+    input <- getLine
+    case validatore input of
+        Just val -> return val
+        Nothing  -> putStrLn msgErrore >> elaboraInput validatore prompt msgErrore
+
+{- Azione richiediM
+   Descrizione: wrapper per richiedere specificamente il parametro m (bit di parità). -}
+richiediM :: IO Int
+richiediM = elaboraInput validaM
+     ("Il bit di parità deve essere maggiore o uguale a 2 e minore del limite di sistema pari a " ++ show (finiteBitSize (0::Int) - 2) ++
+    "\nInserire il bit di parità scelto:")
+    "Errore: valore non valido.\n"
+
+{- Azione richiediParola
+   Descrizione: Wrapper per richiedere una parola binaria di lunghezza specifica.
+   Argomenti: len (lunghezza richiesta). -}
+richiediParola :: Int -> IO ParolaBinaria
+richiediParola len = elaboraInput (validaParolaBinaria len)
+    ("Inserisci parola binaria di lunghezza " ++ show len ++ ":")
+    ("Errore: devi inserire esattamente " ++ show len ++ " bit (0 o 1).")
+
+{- Azione gestioneCodifica
+   Descrizione: Gestisce il flusso dell'operazione di codifica (input m, calcolo k, input parola, stampa risultato).
+   Argomenti: Nessuno. -}
+gestioneCodifica :: IO ()
+gestioneCodifica = do
+    putStrLn "\nCodifica di Hamming"
+    m <- richiediM
+    let (n, k) =  calcolaParametriHamming m
+    putStrLn $ "Parametri: n = " ++ show n ++ ", k = " ++ show k
+    dati <- richiediParola k
+    let codificata = codificaHamming m dati
+    putStrLn $ "Parola codificata: " ++ concatMap show codificata
+
+{- Azione gestioneDecodifica
+   Descrizione: Gestisce il flusso dell'operazione di decodifica (input m, input parola, visualizzazione correzione).
+   Argomenti: Nessuno. -}
+gestioneDecodifica :: IO ()
+gestioneDecodifica = do
+    putStrLn "\nDecodifica di Hamming"
+    m <- richiediM
+    let (n, k) =  calcolaParametriHamming m
+    putStrLn $ "Parametri: n = " ++ show n ++ ", k = " ++ show k
+    ricevuta <- richiediParola n
+    let (decodificata, mbErrore) = decodificaHamming m ricevuta
+    case mbErrore of
+        Nothing ->
+            putStrLn $ "Nessun errore rilevato.\nParola decodificata: " ++ concatMap show decodificata
+        Just pos ->
+            putStrLn $ "Errore corretto in posizione " ++ show pos ++
+                       "\nParola decodificata: " ++ concatMap show decodificata
+
+{- Azione gestioneDistanza
+   Descrizione: Gestisce il flusso per il calcolo della distanza tra due parole binarie inserite dall'utente.
+   Argomenti: Nessuno. -}
+gestioneDistanza :: IO ()
+gestioneDistanza = do
+    putStrLn "\nDistanza di Hamming"
+    p1 <- elaboraInput (\s -> validaParolaBinaria (length s) s)
+              "Inserisci la prima parola binaria:"
+              "Errore: parola non valida (usa solo 0 e 1).\n"
+
+    p2 <- elaboraInput (validaParolaBinaria (length p1))
+              ("Inserisci la seconda parola (lunghezza " ++ show (length p1) ++ "):")
+              "Errore: lunghezza diversa dalla prima o caratteri non validi.\n"
+
+    let distanza = calcolaDistanzaHamming p1 p2
+    putStrLn $ "Distanza di Hamming: " ++ show distanza
+
+{- Azione cicloPrincipale
+   Descrizione: ciclo principale del programma che mostra il menu e smista le operazioni.
+   Casi:
+     - "1", "2", "3": Esegue gestione specifica e ricorre.
+     - "4": Termina (caso base implicito).
+     - Altro: Messaggio errore e ricorre. -}
+cicloPrincipale :: IO ()
+cicloPrincipale = do
+    putStrLn "\nScegliere l'operazione desiderata:"
+    mapM_ putStrLn vociMenu
+    scelta <- getLine
+    case scelta of
+        "1" -> gestioneCodifica   >> cicloPrincipale
+        "2" -> gestioneDecodifica >> cicloPrincipale
+        "3" -> gestioneDistanza   >> cicloPrincipale
+        "4" -> putStrLn "\nGrazie per aver utilizzato il programma. Arrivederci!"
+        _   -> putStrLn "Opzione non valida. Riprovare." >> cicloPrincipale
+
+{- Azione main
+   Descrizione: Entry point del programma, stampa il benvenuto e avvia il ciclo principale. -}
+main :: IO ()
+main = do
+    mapM_ putStrLn messaggioBenvenuto
+    cicloPrincipale
