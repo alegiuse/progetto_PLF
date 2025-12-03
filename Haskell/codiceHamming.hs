@@ -23,8 +23,6 @@ import Data.List (foldl')
 type Bit = Int
 type ParolaBinaria = [Bit]
 
--- ENTRY POINT E FLUSSO PRINCIPALE 
-
 {- Azione main
    Descrizione: punto di ingresso del programma. Stampa il benvenuto e avvia il ciclo principale.-}
 main :: IO ()
@@ -48,8 +46,6 @@ cicloPrincipale = do
         "3" -> gestioneDistanza   >> cicloPrincipale
         "4" -> putStrLn "\nEsecuzione terminata"
         _   -> putStrLn "Opzione non valida. Riprovare." >> cicloPrincipale
-
--- GESTIONE INPUT/OUTPUT SPECIFICA 
 
 {- Azione gestioneCodifica
    Descrizione: gestisce il flusso per l'operazione di codifica.-}
