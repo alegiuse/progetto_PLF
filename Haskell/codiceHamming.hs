@@ -6,12 +6,8 @@
 -- #                Anno di corso: Terzo                    #
 -- ##########################################################
 
-{- Specifica: Scrivere un programma Haskell che acquisisce da tastiera un messaggio binario, 
-il quale verrà codificato o decodificato mediante un codice di Hamming generico (n,k), in 
-base alla scelta dell'utente. I parametri (n,k) saranno derivati da un valore m, fornito 
-dall'utente, che rappresenta il numero di bit di parità. Il programma sarà inoltre in grado di 
-calcolare la distanza di Hamming tra due stringhe binarie, fornite dall'utente, di lunghezza 
-uguale ma arbitraria.-}
+{- Specifica: Programma Haskell per la codifica/decodifica
+di codici di Hamming e calcolo della distanza di Hamming -}
 
 import Data.Bits (testBit, xor, (.&.), shiftL, finiteBitSize)
 import Text.Read (readMaybe)
@@ -24,7 +20,8 @@ type Bit = Int
 type ParolaBinaria = [Bit]
 
 {- Azione main
-   Descrizione: punto di ingresso del programma. Stampa il benvenuto e avvia il ciclo principale.-}
+   Descrizione: punto di ingresso del programma. 
+   Stampa il benvenuto e avvia il ciclo principale.-}
 main :: IO ()
 main = do
     mapM_ putStrLn messaggioBenvenuto
@@ -34,7 +31,8 @@ main = do
    Descrizione: gestisce il menu interattivo e lo smistamento delle operazioni.
    Ricorsione:
      - Caso Base: l'utente inserisce "4" (termina l'esecuzione).
-     - Passo Ricorsivo: l'utente inserisce "1", "2", "3" o un input non valido (l'azione richiama se stessa).-}
+     - Passo Ricorsivo: l'utente inserisce "1", "2", "3" 
+                        o un input non valido (l'azione richiama se stessa).-}
 cicloPrincipale :: IO ()
 cicloPrincipale = do
     putStrLn "\nScegliere l'operazione:"
@@ -53,7 +51,7 @@ gestioneCodifica :: IO ()
 gestioneCodifica = do
     putStrLn "\nCodifica di Hamming"
     m <- richiediM
-    let (n, k) =  calcolaParametriHamming m
+    let (n, k) = calcolaParametriHamming m
     putStrLn $ "Parametri: n = " ++ show n ++ ", k = " ++ show k
     dati <- richiediParola k
     let codificata = codificaHamming m dati
@@ -65,7 +63,7 @@ gestioneDecodifica :: IO ()
 gestioneDecodifica = do
     putStrLn "\nDecodifica di Hamming"
     m <- richiediM
-    let (n, k) =  calcolaParametriHamming m
+    let (n, k) = calcolaParametriHamming m
     putStrLn $ "Parametri: n = " ++ show n ++ ", k = " ++ show k
     ricevuta <- richiediParola n
     let (decodificata, possibileErrore) = decodificaHamming m ricevuta
@@ -87,7 +85,7 @@ gestioneDistanza = do
                "Errore: inserire parola di soli 0 e 1.\n"
 
     parola2 <- elaboraInput (validaParolaBinaria (length parola1))
-              ("Inserire la seconda parola (lunghezza " ++ show (length parola1) ++ ")\n" 
+              ("Inserire la seconda parola binaria (lunghezza " ++ show (length parola1) ++ ")\n" 
               ++ init(unlines mostraIstruzioniInput))
               "Errore: lunghezza diversa dalla prima parola o caratteri non validi.\n"
 
@@ -97,8 +95,9 @@ gestioneDistanza = do
 {- Azione elaboraInput
    Descrizione: gestore generico dell'input utente con validazione.
    Ricorsione:
-     - Caso Base: il 'validatore' restituisce 'Just valore' (input corretto).
-     - Passo Ricorsivo: il 'validatore' restituisce 'Nothing'. Stampa errore e richiama se stessa.-}
+     - Caso Base: il 'validatore' restituisce l'input valido.
+     - Passo Ricorsivo: il 'validatore' restituisce 'Nothing'. 
+                        Stampa errore e richiama se stessa.-}
 elaboraInput :: (String -> Maybe a) -> String -> String -> IO a
 elaboraInput validatore richiesta msgErrore = do
     putStrLn richiesta
@@ -111,9 +110,9 @@ elaboraInput validatore richiesta msgErrore = do
    Descrizione: richiede all'utente il parametro 'm' (bit di parità).-}
 richiediM :: IO Int
 richiediM = elaboraInput validaM
-     ("Il bit di parità deve essere maggiore o uguale a 2"++ 
-     " e minore del limite di sistema pari a " ++ show limiteM ++
-    "\nInserire il bit di parità scelto:")
+     ("Il numero di bit di parità deve essere maggiore o uguale a 2"++ 
+      " e minore del limite di sistema pari a " ++ show limiteM ++
+      "\nInserire il numero dibit di parità scelto:")
     "Errore: valore non valido.\n"
 
 {- Azione richiediParola
@@ -136,7 +135,8 @@ codificaHamming m dati =
     in inserisciParitaRicorsiva m 0 struttura
 
 {- Funzione decodificaHamming
-   Descrizione: decodifica usando il calcolo ricorsivo della sindrome e corregge eventuale errore.
+   Descrizione: decodifica usando il calcolo ricorsivo della sindrome 
+                e corregge eventuale errore.
    Argomenti: m (numero bit parità), ricevuta (parola da decodificare).-}
 decodificaHamming :: Int -> ParolaBinaria -> (ParolaBinaria, Maybe Int)
 decodificaHamming m ricevuta =
@@ -277,7 +277,7 @@ messaggioBenvenuto =
     , "Scegliere dal menu una delle tre operazioni da eseguire."
     , "Per la codifica e decodifica di Hamming: "
     , " 1. Inserire l'indice di parità (numero intero >= 2)"
-    , " 2. Inserire una parola binaria di lunghezza adeguata ai parametri del codica di"
+    , " 2. Inserire una parola binaria di lunghezza adeguata ai parametri del codice di"
     , "    Hamming calcolati in base a m."
     , "Per il calcolo della distanza di Hamming: "
     , " 1. Inserire due parole binarie della stessa lunghezza" 
