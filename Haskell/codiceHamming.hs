@@ -112,7 +112,7 @@ richiediM :: IO Int
 richiediM = elaboraInput validaM
      ("Il numero di bit di parità deve essere maggiore o uguale a 2"++ 
       " e minore del limite di sistema pari a " ++ show limiteM ++
-      "\nInserire il numero dibit di parità scelto:")
+      "\nInserire il numero di bit di parità scelto:")
     "Errore: valore non valido.\n"
 
 {- Azione richiediParola
