@@ -85,7 +85,8 @@ gestioneDistanza = do
                "Errore: inserire parola di soli 0 e 1.\n"
 
     parola2 <- elaboraInput (validaParolaBinaria (length parola1))
-              ("Inserire la seconda parola binaria (lunghezza " ++ show (length parola1) ++ ")\n" 
+              ("Inserire la seconda parola binaria (lunghezza " 
+              ++ show (length parola1) ++ ")\n" 
               ++ init(unlines mostraIstruzioniInput))
               "Errore: lunghezza diversa dalla prima parola o caratteri non validi.\n"
 
@@ -131,8 +132,8 @@ richiediParola lun = elaboraInput (validaParolaBinaria lun)
 codificaHamming :: Int -> ParolaBinaria -> ParolaBinaria
 codificaHamming m dati =
     let (n, _) = calcolaParametriHamming m
-        struttura = costruisciParola n dati
-    in inserisciParitaRicorsiva m 0 struttura
+        parola = costruisciParola n dati
+    in inserisciParita m 0 parola
 
 {- Funzione decodificaHamming
    Descrizione: decodifica usando il calcolo ricorsivo della sindrome 
@@ -175,14 +176,14 @@ calcolaSindrome m i parola
             valoreSindrome = bitCalcolato * (1 `shiftL` i)
         in valoreSindrome + calcolaSindrome m (i + 1) parola
 
-{- Funzione inserisciParitaRicorsiva
+{- Funzione inserisciParita
    Descrizione: calcola e inserisce i bit di parità in modo ricorsivo.
    Argomenti: m (totale parità), i (indice corrente), parola.
    Ricorsione: 
      - Caso Base: i >= m (tutti i bit calcolati), restituisce la parola.
      - Passo Ricorsivo: calcola parità per i, aggiorna la lista, ricorre su i + 1.-}
-inserisciParitaRicorsiva :: Int -> Int -> ParolaBinaria -> ParolaBinaria
-inserisciParitaRicorsiva m i parola
+inserisciParita :: Int -> Int -> ParolaBinaria -> ParolaBinaria
+inserisciParita m i parola
     | i >= m = parola 
     | otherwise =    
         let posizioneParita = (1 `shiftL` i) - 1
@@ -190,7 +191,7 @@ inserisciParitaRicorsiva m i parola
             -- Aggiorna la lista
             (prima, _:dopo) = splitAt posizioneParita parola
             nuovaParola = prima ++ bitCalcolato : dopo
-        in inserisciParitaRicorsiva m (i + 1) nuovaParola
+        in inserisciParita m (i + 1) nuovaParola
 
 {- Funzione costruisciParola
    Descrizione: Inserisce i bit informativi nelle posizioni non potenze di 2.
