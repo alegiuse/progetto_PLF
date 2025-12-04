@@ -1,6 +1,6 @@
 -- ##########################################################
 -- #    Corso di Programmazione Logica e Funzionale         #
--- #  Progetto per la sessione autunnale A.A. 2024/2025     #
+-- #  Progetto per la sessione invernale A.A. 2025/2026     #
 -- #       di Nasrine Aboufaris, Matricola: 321885          #
 -- #       e Alessia Giuseppetti, Matricola: 322984         #
 -- #                Anno di corso: Terzo                    #
