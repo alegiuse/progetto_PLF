@@ -152,8 +152,8 @@ decodificaHamming m ricevuta =
      - Caso Base: liste vuote -> distanza 0.
      - Passo Ricorsivo: confronta teste (XOR) + chiamata ricorsiva sulle code.-}
 calcolaDistanzaHamming :: ParolaBinaria -> ParolaBinaria -> Int
-calcolaDistanzaHamming [] [] = 0 -- Caso Base
-calcolaDistanzaHamming (x:xs) (y:ys) = -- Passo Ricorsivo
+calcolaDistanzaHamming [] [] = 0 
+calcolaDistanzaHamming (x:xs) (y:ys) = 
     (x `xor` y) + calcolaDistanzaHamming xs ys
 
 -- FUNZIONI AUSILIARIE E MATEMATICHE
